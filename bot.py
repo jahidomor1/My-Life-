@@ -20,7 +20,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboard
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
 # =============== কনফিগারেশন ===============
-MAIN_BOT_TOKEN = '8940762852:AAHPwFHwGhWyopI4L2zbE_Cmw2VxhnNhRdo'
+MAIN_BOT_TOKEN = '8173353411:AAF5XX9iOLg-pR7v_PZ2ka84c5KHOHTfnqk'
 SUPER_ADMIN = 8257820157
 
 # =============== পাথ সেটআপ ===============
