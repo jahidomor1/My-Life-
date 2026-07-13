@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: My-Life-4
+    env: python
+    pythonVersion: 3.13.0
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python bot.py"
