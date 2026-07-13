@@ -1174,6 +1174,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[user_id]['state'] = 'WAITING_REQ_OPTIONAL'
 
 def main():
+    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
     app = Application.builder().token(MAIN_BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
