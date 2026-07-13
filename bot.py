@@ -15,6 +15,7 @@ import asyncio
 import sqlite3
 import shutil
 import threading
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from flask import Flask
@@ -113,6 +114,13 @@ def init_master_db():
     cursor.execute('''CREATE TABLE IF NOT EXISTS force_channels (
         channel_username TEXT PRIMARY KEY
     )''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS user_sessions (
+        user_id INTEGER PRIMARY KEY, 
+        state TEXT, 
+        data TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )''')
     
     default_settings = [
         ('premium_system', 'ON'), ('bkash', 'ON'), ('nagod', 'ON'), ('binance', 'ON'), 
@@ -150,7 +158,51 @@ def is_user_admin(user_id: int) -> bool:
     return bool(res and res[0])
 
 running_processes = {}
-user_states = {}
+# =============== Session Management (Database-based) ===============
+user_states = {}  # Keep for compatibility, but save to DB too
+
+def get_user_session(user_id):
+    """Database থেকে user session পান"""
+    import json
+    conn = sqlite3.connect(MASTER_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT state, data FROM user_sessions WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        state, data_str = result
+        try:
+            data = json.loads(data_str) if data_str else {}
+        except:
+            data = {}
+        return {'state': state, **data}
+    return None
+
+def set_user_session(user_id, state, data=None):
+    """User session database এ save করুন"""
+    import json
+    conn = sqlite3.connect(MASTER_DB_PATH)
+    cursor = conn.cursor()
+    if data is None:
+        data = {}
+    data_str = json.dumps(data)
+    cursor.execute("""
+        INSERT OR REPLACE INTO user_sessions (user_id, state, data, updated_at) 
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    """, (user_id, state, data_str))
+    conn.commit()
+    conn.close()
+    # Memory তেও রাখি
+    user_states[user_id] = {'state': state, **data}
+
+def delete_user_session(user_id):
+    """User session delete করুন"""
+    conn = sqlite3.connect(MASTER_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_sessions WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    user_states.pop(user_id, None)
 
 async def force_join_check(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     user_id = update.effective_user.id
@@ -1185,6 +1237,23 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[user_id]['state'] = 'WAITING_REQ_OPTIONAL'
 
 def main():
+    # Database initialize করুন
+    init_master_db()
+    
+    # Database থেকে সব user sessions reload করুন
+    import json
+    conn = sqlite3.connect(MASTER_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id, state, data FROM user_sessions")
+    for user_id, state, data_str in cursor.fetchall():
+        try:
+            data = json.loads(data_str) if data_str else {}
+            user_states[user_id] = {'state': state, **data}
+        except:
+            pass
+    conn.close()
+    logger.info(f"✓ {len(user_states)} user sessions loaded from database")
+    
     # Flask server run করুন background এ (port binding এর জন্য)
     flask_thread = threading.Thread(target=lambda: flask_app.run(host='0.0.0.0', port=5000), daemon=True)
     flask_thread.start()
