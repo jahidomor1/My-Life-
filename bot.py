@@ -39,23 +39,23 @@ MASTER_DB_PATH = DATA_DIR / 'master_system.db'
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
-# =============== 🌈 বাটন স্টাইল ও কালার প্যাচিং কোড ===============
-_old_inline_dict = InlineKeyboardButton.to_dict
-def _new_inline_dict(self, *args, **kwargs):
-    d = _old_inline_dict(self, *args, **kwargs)
-    if hasattr(self, 'style'): d['style'] = self.style
-    if hasattr(self, 'custom_copy_text') and self.custom_copy_text:
-        d['copy_text'] = {'text': str(self.custom_copy_text)}
-        if 'callback_data' in d: del d['callback_data']
-    return d
-InlineKeyboardButton.to_dict = _new_inline_dict
+# =============== বাটন স্টাইল কোড (Disabled - python-telegram-bot doesn't support style) ===============
+# _old_inline_dict = InlineKeyboardButton.to_dict
+# def _new_inline_dict(self, *args, **kwargs):
+#     d = _old_inline_dict(self, *args, **kwargs)
+#     if hasattr(self, 'style'): d['style'] = self.style
+#     if hasattr(self, 'custom_copy_text') and self.custom_copy_text:
+#         d['copy_text'] = {'text': str(self.custom_copy_text)}
+#         if 'callback_data' in d: del d['callback_data']
+#     return d
+# InlineKeyboardButton.to_dict = _new_inline_dict
 
-_old_kb_dict = KeyboardButton.to_dict
-def _new_kb_dict(self, *args, **kwargs):
-    d = _old_kb_dict(self, *args, **kwargs)
-    if hasattr(self, 'style'): d['style'] = self.style
-    return d
-KeyboardButton.to_dict = _new_kb_dict
+# _old_kb_dict = KeyboardButton.to_dict
+# def _new_kb_dict(self, *args, **kwargs):
+#     d = _old_kb_dict(self, *args, **kwargs)
+#     if hasattr(self, 'style'): d['style'] = self.style
+#     return d
+# KeyboardButton.to_dict = _new_kb_dict
 
 def ibtn(text, callback_data=None, url=None, style=None, copy_text_str=None):
     kwargs = {'text': text}
@@ -64,12 +64,10 @@ def ibtn(text, callback_data=None, url=None, style=None, copy_text_str=None):
         if callback_data: kwargs['callback_data'] = callback_data
         if url: kwargs['url'] = url
     btn = InlineKeyboardButton(**kwargs)
-    if style: object.__setattr__(btn, 'style', style)
     return btn
 
 def rbtn(text, style=None):
     btn = KeyboardButton(text=text)
-    if style: object.__setattr__(btn, 'style', style)
     return btn
 
 # =============== MASTER DATABASE SETUP ===============
