@@ -14,8 +14,10 @@ import sys
 import asyncio
 import sqlite3
 import shutil
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
+from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
@@ -39,7 +41,18 @@ MASTER_DB_PATH = DATA_DIR / 'master_system.db'
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
-# =============== বাটন স্টাইল কোড (Disabled - python-telegram-bot doesn't support style) ===============
+# =============== Flask Server Setup (for Render port binding) ===============
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def health_check():
+    return "Telegram Bot is running", 200
+
+@flask_app.route('/health')
+def health():
+    return "OK", 200
+
+# =============== বাটন স্টাইল কোড (Disabled - python-telegram-bot doesn't support style attribute) ===============
 # _old_inline_dict = InlineKeyboardButton.to_dict
 # def _new_inline_dict(self, *args, **kwargs):
 #     d = _old_inline_dict(self, *args, **kwargs)
@@ -1172,6 +1185,11 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[user_id]['state'] = 'WAITING_REQ_OPTIONAL'
 
 def main():
+    # Flask server run করুন background এ (port binding এর জন্য)
+    flask_thread = threading.Thread(target=lambda: flask_app.run(host='0.0.0.0', port=5000), daemon=True)
+    flask_thread.start()
+    logger.info("✓ Flask server started on port 5000")
+    
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     app = Application.builder().token(MAIN_BOT_TOKEN).build()
